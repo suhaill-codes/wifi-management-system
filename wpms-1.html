@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>WiFi Management System — Built by Suhail Ahmed</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0A0F1E;font-family:'Segoe UI',system-ui,sans-serif;color:#E2E8F0;overflow:hidden;height:100vh;}
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:#0A0F1E;}
+::-webkit-scrollbar-thumb{background:#1E2A3B;border-radius:3px;}
+@keyframes pulse{0%,100%{opacity:.4;transform:scale(.8);}50%{opacity:1;transform:scale(1.1);}}
+@keyframes spin{to{transform:rotate(360deg);}}
+select,input,textarea{font-family:inherit;}
+select option{background:#111827;color:#E2E8F0;}
+button{font-family:inherit;cursor:pointer;}
+.app{display:flex;height:100vh;overflow:hidden;}
+.sidebar{width:220px;background:#111827;border-right:1px solid #1E2A3B;display:flex;flex-direction:column;transition:width .25s;overflow:hidden;flex-shrink:0;}
+.sidebar.collapsed{width:64px;}
+.sidebar-logo{padding:18px 16px;border-bottom:1px solid #1E2A3B;display:flex;align-items:center;gap:10;}
+.logo-icon{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#00C6FF,#0052CC);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.logo-text{color:#E2E8F0;font-weight:700;font-size:14px;white-space:nowrap;}
+nav{flex:1;padding:12px 8px;display:flex;flex-direction:column;gap:2px;overflow-y:auto;}
+.nav-btn{display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;border:none;background:transparent;color:#94A3B8;font-size:13px;font-weight:400;text-align:left;width:100%;white-space:nowrap;transition:background .15s,color .15s;}
+.nav-btn:hover{background:#1E2A3B;color:#E2E8F0;}
+.nav-btn.active{background:#00C6FF18;color:#00C6FF;font-weight:600;}
+.nav-btn svg{flex-shrink:0;}
+.sidebar-bottom{padding:12px 8px;border-top:1px solid #1E2A3B;}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.topbar{padding:14px 24px;border-bottom:1px solid #1E2A3B;display:flex;align-items:center;justify-content:space-between;background:#111827;flex-shrink:0;}
+.content{flex:1;overflow-y:auto;padding:24px;}
+.page{display:none;flex-direction:column;gap:24px;}
+.page.active{display:flex;}
+.page-title{color:#E2E8F0;font-size:22px;font-weight:700;}
+.page-sub{color:#94A3B8;font-size:13px;margin-top:4px;}
+.grid-stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px;}
+.stat-card{background:#111827;border:1px solid #1E2A3B;border-radius:12px;padding:20px 22px;display:flex;flex-direction:column;gap:8px;position:relative;overflow:hidden;}
+.stat-bar{position:absolute;top:0;left:0;width:3px;height:100%;border-radius:12px 0 0 12px;}
+.stat-label{color:#94A3B8;font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:1px;}
+.stat-value{color:#E2E8F0;font-size:28px;font-weight:700;line-height:1;}
+.stat-sub{color:#94A3B8;font-size:12px;}
+.card{background:#111827;border:1px solid #1E2A3B;border-radius:12px;padding:20px;}
+.card-title{color:#94A3B8;font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.grid4{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;}
+.table-wrap{background:#111827;border:1px solid #1E2A3B;border-radius:12px;overflow:hidden;}
+table{width:100%;border-collapse:collapse;}
+th{padding:12px 14px;text-align:left;color:#94A3B8;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;border-bottom:1px solid #1E2A3B;white-space:nowrap;}
+td{padding:12px 14px;border-bottom:1px solid #1E2A3B;font-size:13px;}
+tr:last-child td{border-bottom:none;}
+tr:nth-child(even){background:#ffffff05;}
+.badge{padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.5px;display:inline-block;}
+.badge-active{background:#064E3B;color:#10B981;}
+.badge-expired{background:#450A0A;color:#EF4444;}
+.badge-open{background:#1C1917;color:#F59E0B;}
+.badge-pending{background:#172554;color:#60A5FA;}
+.badge-resolved{background:#064E3B;color:#10B981;}
+.badge-paid{background:#064E3B;color:#10B981;}
+.badge-overdue{background:#450A0A;color:#EF4444;}
+.badge-high{background:#450A0A;color:#EF4444;}
+.badge-medium{background:#1C1917;color:#F59E0B;}
+.badge-low{background:#064E3B;color:#10B981;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:8px;font-size:14px;font-weight:600;border:none;cursor:pointer;transition:opacity .2s;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.btn-primary{background:#00C6FF;color:#0A0F1E;}
+.btn-danger{background:#EF444422;color:#EF4444;border:1px solid #EF444444;}
+.btn-ghost{background:transparent;color:#94A3B8;border:1px solid #1E2A3B;}
+.btn-success{background:#10B98122;color:#10B981;border:1px solid #10B98144;}
+.btn-sm{padding:5px 12px;font-size:12px;}
+.btn-icon{background:#1E2A3B;border:none;border-radius:6px;padding:5px 8px;cursor:pointer;display:inline-flex;align-items:center;}
+input[type=text],input[type=password],input[type=number],input[type=email],select,textarea{
+  background:#0A0F1E;border:1px solid #1E2A3B;border-radius:8px;padding:9px 12px;
+  color:#E2E8F0;font-size:14px;outline:none;width:100%;}
+input[type=text]:focus,input[type=password]:focus,input[type=number]:focus,select:focus,textarea:focus{border-color:#00C6FF55;}
+input[type=color]{height:38px;border:1px solid #1E2A3B;border-radius:8px;background:#0A0F1E;width:100%;padding:2px;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{color:#94A3B8;font-size:12px;font-weight:500;}
+.grid-form{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.span2{grid-column:1/-1;}
+.modal-overlay{display:none;position:fixed;inset:0;background:#00000088;z-index:1000;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.open{display:flex;}
+.modal{background:#111827;border:1px solid #1E2A3B;border-radius:16px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid #1E2A3B;}
+.modal-title{color:#E2E8F0;font-weight:700;font-size:16px;}
+.modal-body{padding:24px;display:flex;flex-direction:column;gap:14px;}
+.modal-foot{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;}
+.toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+.search-wrap{position:relative;}
+.search-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);pointer-events:none;}
+.search-wrap input{padding-left:34px;width:210px;}
+.filter-tabs{display:flex;gap:8px;}
+.filter-tab{background:#111827;color:#94A3B8;border:1px solid #1E2A3B;border-radius:8px;padding:7px 16px;font-size:13px;font-weight:600;cursor:pointer;}
+.filter-tab.active{background:#00C6FF;color:#0A0F1E;border-color:#00C6FF;}
+.minibar{display:flex;align-items:flex-end;gap:4px;height:48px;}
+.minibar-bar{flex:1;border-radius:3px 3px 0 0;}
+.minibar-labels{display:flex;justify-content:space-between;margin-top:8px;}
+.minibar-labels span{color:#94A3B8;font-size:11px;}
+.pkg-card{background:#111827;border:1px solid #1E2A3B;border-radius:14px;padding:22px;position:relative;overflow:hidden;}
+.pkg-top-bar{position:absolute;top:0;left:0;right:0;height:3px;}
+.pkg-name{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1px;}
+.pkg-price{font-size:32px;font-weight:800;color:#E2E8F0;margin-top:4px;}
+.pkg-period{color:#94A3B8;font-size:12px;}
+.pkg-rows{margin-top:16px;display:flex;flex-direction:column;gap:8px;}
+.pkg-row{display:flex;justify-content:space-between;}
+.pkg-row span:first-child{color:#94A3B8;font-size:13px;}
+.pkg-row span:last-child{color:#E2E8F0;font-size:13px;font-weight:500;}
+.pkg-footer{margin-top:14px;padding-top:8px;border-top:1px solid #1E2A3B;display:flex;justify-content:space-between;align-items:center;}
+.ticket-card{background:#111827;border:1px solid #1E2A3B;border-radius:12px;padding:18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.ticket-body{flex:1;min-width:200px;}
+.ticket-id{color:#00C6FF;font-size:12px;font-weight:600;}
+.ticket-issue{color:#E2E8F0;font-size:14px;font-weight:600;margin-top:4px;}
+.ticket-desc{color:#94A3B8;font-size:13px;margin-top:2px;}
+.ticket-meta{color:#94A3B8;font-size:11px;margin-top:4px;}
+.chat-area{flex:1;background:#111827;border:1px solid #1E2A3B;border-radius:12px;padding:20px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;}
+.chat-msg{display:flex;}
+.chat-msg.user{justify-content:flex-end;}
+.bubble{max-width:80%;padding:10px 14px;font-size:14px;line-height:1.6;white-space:pre-wrap;}
+.bubble-ai{background:#1E2A3B;color:#E2E8F0;border-radius:14px 14px 14px 4px;}
+.bubble-user{background:#00C6FF;color:#0A0F1E;border-radius:14px 14px 4px 14px;}
+.chat-input-row{display:flex;gap:10px;}
+.chat-input{flex:1;background:#111827;border:1px solid #1E2A3B;border-radius:10px;padding:12px 16px;color:#E2E8F0;font-size:14px;outline:none;}
+.suggestions{display:flex;gap:8px;flex-wrap:wrap;}
+.sugg-btn{background:#1E2A3B;color:#94A3B8;border:none;border-radius:20px;padding:5px 12px;font-size:12px;cursor:pointer;}
+.sugg-btn:hover{color:#E2E8F0;}
+.dist-bar-wrap{flex:2;background:#1E2A3B;border-radius:4px;height:6px;overflow:hidden;}
+.dist-bar-fill{height:100%;border-radius:4px;}
+.toggle{width:36px;height:18px;border-radius:9px;position:relative;cursor:pointer;border:none;}
+.toggle-knob{position:absolute;width:14px;height:14px;border-radius:50%;background:#fff;top:2px;transition:left .2s;}
+.online-dot{width:8px;height:8px;border-radius:50%;background:#10B981;}
+.row-actions{display:flex;gap:6px;}
+.divider{border:none;border-top:1px solid #1E2A3B;margin:12px 0;}
+.finance-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #1E2A3B;}
+.dots{display:flex;align-items:center;gap:6px;}
+.dot{width:8px;height:8px;border-radius:50%;animation:pulse 1s infinite;}
+.ovx{overflow-x:auto;}
+.section-head{padding:14px 16px;border-bottom:1px solid #1E2A3B;color:#E2E8F0;font-size:13px;font-weight:600;}
+.mikro-feature{background:#111827;border:1px solid #1E2A3B;border-radius:10px;padding:14px;}
+.mikro-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+.reseller-conn{display:flex;flex-direction:column;gap:14px;background:#111827;border:1px solid #1E2A3B;border-radius:12px;padding:20px;}
+.ai-page{display:none;flex-direction:column;gap:16px;height:calc(100vh - 140px);}
+.ai-page.active{display:flex;}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">
+        <svg width="18" height="18" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+          <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill="#fff"/>
+        </svg>
+      </div>
+      <span class="logo-text">WMS</span>
+    </div>
+    <nav id="nav"></nav>
+    <div class="sidebar-bottom">
+      <button class="nav-btn" onclick="toggleSidebar()">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+        <span id="collapse-label">Collapse</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="online-dot"></div>
+        <span style="color:#94A3B8;font-size:12px;">System Online</span><span style="color:#1E2A3B;font-size:12px;margin-left:10px;">|</span><span style="color:#00C6FF44;font-size:11px;margin-left:10px;">Built by Suhail Ahmed</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <span id="clock" style="color:#94A3B8;font-size:12px;"></span>
+        <div style="width:32px;height:32px;border-radius:50%;background:#1E2A3B;display:flex;align-items:center;justify-content:center;">
+          <svg width="16" height="16" fill="none" stroke="#94A3B8" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="content" id="content">
+      <!-- Pages injected here -->
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title" id="modal-title">Modal</span>
+      <button class="btn-icon" onclick="closeModal()">
+        <svg width="18" height="18" fill="none" stroke="#94A3B8" stroke-width="2" viewBox="0 0 24 24">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+// ── DATA ─────────────────────────────────────────────────────────────────────
+let packages = [
+  {id:"pkg1",name:"Basic",speed:"10 Mbps",validity:30,price:1000,dataLimit:"Unlimited",autoRenewal:false,active:true,color:"#10B981"},
+  {id:"pkg2",name:"Standard",speed:"20 Mbps",validity:30,price:1500,dataLimit:"Unlimited",autoRenewal:true,active:true,color:"#00C6FF"},
+  {id:"pkg3",name:"Premium",speed:"50 Mbps",validity:30,price:2500,dataLimit:"200 GB",autoRenewal:true,active:true,color:"#F59E0B"},
+  {id:"pkg4",name:"Ultra",speed:"100 Mbps",validity:30,price:4000,dataLimit:"Unlimited",autoRenewal:true,active:true,color:"#EF4444"},
+];
+let customers = [
+  {id:"C001",name:"Ahmed Raza",mobile:"0300-1234567",cnic:"35201-1234567-1",address:"House 12, Block A, Lahore",mac:"AA:BB:CC:DD:EE:01",username:"ahmed.raza",password:"pass123",packageId:"pkg2",status:"Active",joinDate:"2024-01-15",expiry:"2025-07-18",paid:true},
+  {id:"C002",name:"Sara Khan",mobile:"0321-9876543",cnic:"35202-9876543-2",address:"Flat 5, Garden Town, Karachi",mac:"AA:BB:CC:DD:EE:02",username:"sara.khan",password:"pass456",packageId:"pkg3",status:"Active",joinDate:"2024-02-20",expiry:"2025-07-20",paid:false},
+  {id:"C003",name:"Bilal Hussain",mobile:"0333-5554444",cnic:"35203-5554444-3",address:"Street 7, F-10, Islamabad",mac:"AA:BB:CC:DD:EE:03",username:"bilal.h",password:"pass789",packageId:"pkg1",status:"Expired",joinDate:"2023-12-01",expiry:"2025-06-15",paid:false},
+  {id:"C004",name:"Fatima Malik",mobile:"0345-7778888",cnic:"35204-7778888-4",address:"House 99, DHA Phase 3, Lahore",mac:"AA:BB:CC:DD:EE:04",username:"fatima.m",password:"passmk",packageId:"pkg4",status:"Active",joinDate:"2024-03-10",expiry:"2025-07-25",paid:true},
+  {id:"C005",name:"Usman Ali",mobile:"0311-2223333",cnic:"35205-2223333-5",address:"Mohallah Sadiq, Faisalabad",mac:"AA:BB:CC:DD:EE:05",username:"usman.ali",password:"passua",packageId:"pkg2",status:"Active",joinDate:"2024-04-05",expiry:"2025-07-22",paid:true},
+];
+let tickets = [
+  {id:"T001",customerId:"C001",customerName:"Ahmed Raza",issue:"Internet Slow",desc:"Speed is very slow since morning",status:"Open",created:"2025-06-17",priority:"Medium"},
+  {id:"T002",customerId:"C003",customerName:"Bilal Hussain",issue:"Billing Issue",desc:"Charged twice for last month",status:"Pending",created:"2025-06-16",priority:"High"},
+  {id:"T003",customerId:"C002",customerName:"Sara Khan",issue:"No Internet",desc:"Connection dropped completely",status:"Resolved",created:"2025-06-15",priority:"High"},
+];
+const transactions = [
+  {id:"TXN001",customerName:"Ahmed Raza",amount:1500,method:"Cash",date:"2025-06-01",status:"Paid"},
+  {id:"TXN002",customerName:"Fatima Malik",amount:4000,method:"Easypaisa",date:"2025-06-02",status:"Paid"},
+  {id:"TXN003",customerName:"Usman Ali",amount:1500,method:"JazzCash",date:"2025-06-03",status:"Paid"},
+  {id:"TXN004",customerName:"Sara Khan",amount:2500,method:"Bank Transfer",date:"2025-06-05",status:"Pending"},
+  {id:"TXN005",customerName:"Bilal Hussain",amount:1000,method:"Cash",date:"2025-06-10",status:"Overdue"},
+];
+const resellers = [
+  {id:"R001",name:"Akram Networks",mobile:"0300-1111111",city:"Lahore",balance:15000,customers:12,commission:2500,status:"Active"},
+  {id:"R002",name:"Bright Connect",mobile:"0321-2222222",city:"Karachi",balance:8500,customers:7,commission:1200,status:"Active"},
+  {id:"R003",name:"Fast Link",mobile:"0333-3333333",city:"Islamabad",balance:3000,customers:4,commission:600,status:"Pending"},
+];
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function getPkg(id){return packages.find(p=>p.id===id)||{};}
+function badge(status){
+  const map={Active:"active",Expired:"expired",Open:"open",Pending:"pending",Resolved:"resolved",Paid:"paid",Overdue:"overdue",High:"high",Medium:"medium",Low:"low"};
+  return `<span class="badge badge-${map[status]||"pending"}">${status}</span>`;
+}
+function icon(name,size=18,color="currentColor"){
+  const svgs={
+    plus:`<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>`,
+    edit:`<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>`,
+    trash:`<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>`,
+    search:`<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>`,
+    check:`<polyline points="20 6 9 17 4 12"/>`,
+    send:`<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>`,
+    download:`<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>`,
+    alert:`<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>`,
+  };
+  return `<svg width="${size}" height="${size}" fill="none" stroke="${color}" stroke-width="2" viewBox="0 0 24 24">${svgs[name]||""}</svg>`;
+}
+function minibar(data,color){
+  const max=Math.max(...data);
+  return `<div class="minibar">${data.map(v=>`<div class="minibar-bar" style="height:${Math.round((v/max)*100)}%;background:${color};opacity:${0.3+(v/max)*0.7};"></div>`).join("")}</div>`;
+}
+function statCard(label,value,sub,color,ico=""){
+  return `<div class="stat-card">
+    <div class="stat-bar" style="background:${color}"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <span class="stat-label">${label}</span>
+    </div>
+    <span class="stat-value">${value}</span>
+    ${sub?`<span class="stat-sub">${sub}</span>`:""}
+  </div>`;
+}
+function field(label,id,type="text",value="",placeholder=""){
+  return `<div class="field"><label for="${id}">${label}</label>
+    <input type="${type}" id="${id}" value="${esc(value)}" placeholder="${esc(placeholder)}"/>
+  </div>`;
+}
+function selectField(label,id,options,selected=""){
+  return `<div class="field"><label for="${id}">${label}</label>
+    <select id="${id}">${options.map(o=>`<option value="${esc(o.value)}" ${o.value===selected?"selected":""}>${esc(o.label)}</option>`).join("")}</select>
+  </div>`;
+}
+function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function gv(id){const el=document.getElementById(id);return el?el.value:"";}
+
+// ── MODAL ────────────────────────────────────────────────────────────────────
+function openModal(title,body){
+  document.getElementById("modal-title").textContent=title;
+  document.getElementById("modal-body").innerHTML=body;
+  document.getElementById("modal-overlay").classList.add("open");
+}
+function closeModal(){document.getElementById("modal-overlay").classList.remove("open");}
+
+// ── SIDEBAR NAV ───────────────────────────────────────────────────────────────
+const PAGES = [
+  {id:"dashboard",label:"Dashboard",svg:`<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>`},
+  {id:"customers",label:"Customers",svg:`<circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4"/><circle cx="17" cy="17" r="4"/><path d="M15 17h4"/><path d="M17 15v4"/>`},
+  {id:"packages",label:"Packages",svg:`<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>`},
+  {id:"billing",label:"Billing",svg:`<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>`},
+  {id:"tickets",label:"Tickets",svg:`<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>`},
+  {id:"resellers",label:"Resellers",svg:`<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>`},
+  {id:"mikrotik",label:"MikroTik",svg:`<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="6" cy="12" r="1" fill="currentColor"/><circle cx="9" cy="12" r="1" fill="currentColor"/><line x1="13" y1="9" x2="13" y2="15"/><line x1="16" y1="9" x2="16" y2="15"/><line x1="19" y1="9" x2="19" y2="15"/>`},
+  {id:"finance",label:"Finance",svg:`<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>`},
+  {id:"ai",label:"AI Assistant",svg:`<path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/><line x1="10" y1="22" x2="14" y2="22"/>`},
+];
+
+let currentPage = "dashboard";
+let sidebarCollapsed = false;
+
+function buildNav(){
+  const nav = document.getElementById("nav");
+  nav.innerHTML = PAGES.map(p=>`
+    <button class="nav-btn ${p.id===currentPage?"active":""}" onclick="goTo('${p.id}')">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">${p.svg}</svg>
+      <span class="nav-label">${p.label}</span>
+    </button>
+  `).join("");
+}
+
+function goTo(id){
+  currentPage=id;
+  buildNav();
+  renderPage(id);
+}
+
+function toggleSidebar(){
+  sidebarCollapsed=!sidebarCollapsed;
+  const s=document.getElementById("sidebar");
+  s.classList.toggle("collapsed",sidebarCollapsed);
+  document.querySelectorAll(".nav-label,.logo-text,#collapse-label").forEach(el=>{
+    el.style.display=sidebarCollapsed?"none":"";
+  });
+}
+
+// ── RENDER PAGES ──────────────────────────────────────────────────────────────
+function renderPage(id){
+  const c=document.getElementById("content");
+  const renderers={
+    dashboard:renderDashboard,
+    customers:renderCustomers,
+    packages:renderPackages,
+    billing:renderBilling,
+    tickets:renderTickets,
+    resellers:renderResellers,
+    mikrotik:renderMikroTik,
+    finance:renderFinance,
+    ai:renderAI,
+  };
+  c.innerHTML = (renderers[id]||renderDashboard)();
+  if(id==="ai") initAI();
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────────────
+function renderDashboard(){
+  const active=customers.filter(c=>c.status==="Active").length;
+  const expired=customers.filter(c=>c.status==="Expired").length;
+  const unpaid=customers.filter(c=>!c.paid).length;
+  const rev=transactions.filter(t=>t.status==="Paid").reduce((a,b)=>a+b.amount,0);
+  const openT=tickets.filter(t=>t.status==="Open").length;
+  const pkgDist=packages.map(p=>({name:p.name,color:p.color,count:customers.filter(c=>c.packageId===p.id).length}));
+  return `
+  <h1 class="page-title">Dashboard</h1>
+  <p class="page-sub">${new Date().toLocaleDateString("en-PK",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</p>
+  <div class="grid-stats">
+    ${statCard("Total Customers",customers.length,`${active} active`,"#00C6FF")}
+    ${statCard("Active",active,"Connected","#10B981")}
+    ${statCard("Expired",expired,"Need renewal","#EF4444")}
+    ${statCard("Revenue","Rs."+rev.toLocaleString(),"Collected","#F59E0B")}
+    ${statCard("Pending Bills",unpaid,"Unpaid","#F59E0B")}
+    ${statCard("Open Tickets",openT,"Support","#818CF8")}
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Revenue — Last 7 Days</div>
+      ${minibar([45000,52000,48000,61000,55000,70000,68000],"#00C6FF")}
+      <div class="minibar-labels">${["M","T","W","T","F","S","S"].map(d=>`<span>${d}</span>`).join("")}</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Customer Growth</div>
+      ${minibar([20,28,35,42,48,52,57],"#10B981")}
+      <div class="minibar-labels">${["W1","W2","W3","W4","W5","W6","W7"].map(d=>`<span>${d}</span>`).join("")}</div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Package Distribution</div>
+      ${pkgDist.map(p=>`
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+          <div style="width:10px;height:10px;border-radius:2px;background:${p.color};flex-shrink:0;"></div>
+          <span style="color:#E2E8F0;font-size:13px;flex:1;">${p.name}</span>
+          <div class="dist-bar-wrap"><div class="dist-bar-fill" style="width:${customers.length?(p.count/customers.length*100):0}%;background:${p.color};"></div></div>
+          <span style="color:#94A3B8;font-size:12px;width:20px;text-align:right;">${p.count}</span>
+        </div>
+      `).join("")}
+    </div>
+    <div class="card">
+      <div class="card-title">Recent Transactions</div>
+      ${transactions.slice(0,5).map(t=>`
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #1E2A3B;">
+          <div>
+            <div style="color:#E2E8F0;font-size:13px;font-weight:500;">${t.customerName}</div>
+            <div style="color:#94A3B8;font-size:11px;">${t.method} · ${t.date}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="color:#00C6FF;font-size:13px;font-weight:600;">Rs.${t.amount.toLocaleString()}</div>
+            ${badge(t.status)}
+          </div>
+        </div>
+      `).join("")}
+    </div>
+  </div>`;
+}
+
+// ── CUSTOMERS ─────────────────────────────────────────────────────────────────
+function renderCustomers(search=""){
+  const list=customers.filter(c=>!search||c.name.toLowerCase().includes(search.toLowerCase())||c.mobile.includes(search)||c.id.toLowerCase().includes(search.toLowerCase()));
+  return `
+  <div class="toolbar">
+    <div>
+      <h1 class="page-title">Customers</h1>
+      <p class="page-sub">${customers.length} total · ${customers.filter(c=>c.status==="Active").length} active</p>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <div class="search-wrap">
+        ${icon("search",16,"#94A3B8")}
+        <input type="text" id="cust-search" placeholder="Search name, mobile, ID..." value="${esc(search)}" oninput="renderPage('customers')" onchange="custSearch(this.value)" style="width:210px;"/>
+      </div>
+      <button class="btn btn-primary" onclick="openAddCustomer()">
+        ${icon("plus",16,"#0A0F1E")} Add Customer
+      </button>
+    </div>
+  </div>
+  <div class="table-wrap"><div class="ovx">
+  <table>
+    <thead><tr>
+      <th>ID</th><th>Name</th><th>Mobile</th><th>Package</th><th>Speed</th><th>Expiry</th><th>Status</th><th>Paid</th><th>Actions</th>
+    </tr></thead>
+    <tbody>
+    ${list.map(c=>{const p=getPkg(c.packageId);return `
+      <tr>
+        <td style="color:#00C6FF;font-weight:600;">${c.id}</td>
+        <td><div style="color:#E2E8F0;font-weight:500;">${esc(c.name)}</div><div style="color:#94A3B8;font-size:11px;">${esc(c.username)}</div></td>
+        <td>${esc(c.mobile)}</td>
+        <td><span style="background:#1E2A3B;color:${p.color||"#94A3B8"};padding:3px 10px;border-radius:6px;font-size:12px;font-weight:600;">${esc(p.name||"-")}</span></td>
+        <td style="color:#94A3B8;">${esc(p.speed||"-")}</td>
+        <td style="color:#94A3B8;font-size:12px;">${esc(c.expiry||"-")}</td>
+        <td>${badge(c.status)}</td>
+        <td style="color:${c.paid?"#10B981":"#EF4444"};font-size:18px;">${c.paid?"✓":"✗"}</td>
+        <td><div class="row-actions">
+          <button class="btn-icon" onclick="openEditCustomer('${c.id}')">${icon("edit",14,"#00C6FF")}</button>
+          <button class="btn-icon" style="background:#EF444422;" onclick="deleteCustomer('${c.id}')">${icon("trash",14,"#EF4444")}</button>
+        </div></td>
+      </tr>`;}).join("")}
+    </tbody>
+  </table>
+  </div></div>`;
+}
+function custSearch(v){goTo("customers");setTimeout(()=>{const el=document.getElementById("cust-search");if(el){el.value=v;el.focus();}},10);}
+
+function openAddCustomer(){
+  const pkgOpts=packages.map(p=>({value:p.id,label:`${p.name} — Rs.${p.price}`}));
+  openModal("Add Customer",`
+    <div class="grid-form">
+      ${field("Customer ID","f-id","text",`C00${customers.length+1}`)}
+      ${field("Full Name","f-name")}
+      ${field("Mobile","f-mobile","text","")}
+      ${field("CNIC","f-cnic")}
+      <div class="span2">${field("Address","f-address")}</div>
+      ${field("Router MAC","f-mac")}
+      ${field("Username","f-username")}
+      ${field("Password","f-password","password")}
+      ${selectField("Package","f-pkg",pkgOpts,"pkg1")}
+      ${selectField("Status","f-status",[{value:"Active",label:"Active"},{value:"Expired",label:"Expired"}],"Active")}
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCustomer(null)">${icon("check",16,"#0A0F1E")} Save</button>
+    </div>`);
+}
+function openEditCustomer(id){
+  const c=customers.find(x=>x.id===id);if(!c)return;
+  const pkgOpts=packages.map(p=>({value:p.id,label:`${p.name} — Rs.${p.price}`}));
+  openModal("Edit Customer",`
+    <div class="grid-form">
+      ${field("Customer ID","f-id","text",c.id)}
+      ${field("Full Name","f-name","text",c.name)}
+      ${field("Mobile","f-mobile","text",c.mobile)}
+      ${field("CNIC","f-cnic","text",c.cnic)}
+      <div class="span2">${field("Address","f-address","text",c.address)}</div>
+      ${field("Router MAC","f-mac","text",c.mac)}
+      ${field("Username","f-username","text",c.username)}
+      ${field("Password","f-password","password",c.password)}
+      ${selectField("Package","f-pkg",pkgOpts,c.packageId)}
+      ${selectField("Status","f-status",[{value:"Active",label:"Active"},{value:"Expired",label:"Expired"}],c.status)}
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCustomer('${id}')">${icon("check",16,"#0A0F1E")} Save</button>
+    </div>`);
+}
+function saveCustomer(editId){
+  const obj={id:gv("f-id"),name:gv("f-name"),mobile:gv("f-mobile"),cnic:gv("f-cnic"),address:gv("f-address"),mac:gv("f-mac"),username:gv("f-username"),password:gv("f-password"),packageId:gv("f-pkg"),status:gv("f-status")};
+  if(!obj.name){alert("Name required");return;}
+  if(editId) customers=customers.map(c=>c.id===editId?{...c,...obj}:c);
+  else customers.push({...obj,joinDate:new Date().toISOString().split("T")[0],expiry:"",paid:false});
+  closeModal();goTo("customers");
+}
+function deleteCustomer(id){if(confirm("Delete this customer?"))customers=customers.filter(c=>c.id!==id);goTo("customers");}
+
+// ── PACKAGES ──────────────────────────────────────────────────────────────────
+function renderPackages(){
+  return `
+  <div class="toolbar">
+    <div><h1 class="page-title">Packages</h1><p class="page-sub">${packages.length} configured</p></div>
+    <button class="btn btn-primary" onclick="openAddPackage()">${icon("plus",16,"#0A0F1E")} New Package</button>
+  </div>
+  <div class="grid4">
+    ${packages.map(p=>`
+      <div class="pkg-card">
+        <div class="pkg-top-bar" style="background:${p.color};"></div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div>
+            <div class="pkg-name" style="color:${p.color};">${esc(p.name)}</div>
+            <div class="pkg-price">Rs.${p.price.toLocaleString()}</div>
+            <div class="pkg-period">per ${p.validity} days</div>
+          </div>
+          <div class="row-actions">
+            <button class="btn-icon" onclick="openEditPackage('${p.id}')">${icon("edit",14,"#00C6FF")}</button>
+            <button class="btn-icon" style="background:#EF444422;" onclick="deletePackage('${p.id}')">${icon("trash",14,"#EF4444")}</button>
+          </div>
+        </div>
+        <div class="pkg-rows">
+          ${[["Speed",p.speed],["Data",p.dataLimit],["Validity",p.validity+" Days"],["Auto Renewal",p.autoRenewal?"On":"Off"]].map(([k,v])=>`<div class="pkg-row"><span>${k}</span><span>${v}</span></div>`).join("")}
+        </div>
+        <div class="pkg-footer"><span style="color:#94A3B8;font-size:12px;">Status</span>${badge(p.active?"Active":"Expired")}</div>
+      </div>
+    `).join("")}
+  </div>`;
+}
+function openAddPackage(){
+  openModal("New Package",pkgForm({}));
+}
+function openEditPackage(id){
+  const p=packages.find(x=>x.id===id);if(!p)return;
+  openModal("Edit Package",pkgForm(p));
+}
+function pkgForm(p){return `
+  <input type="hidden" id="f-pkgid" value="${esc(p.id||"")}"/>
+  <div class="grid-form">
+    ${field("Package Name","f-pkgname","text",p.name||"")}
+    ${field("Speed (e.g. 20 Mbps)","f-speed","text",p.speed||"")}
+    ${field("Price (Rs)","f-price","number",p.price||"")}
+    ${field("Validity (Days)","f-validity","number",p.validity||30)}
+    ${field("Data Limit","f-datalimit","text",p.dataLimit||"Unlimited","e.g. 100 GB or Unlimited")}
+    <div class="field"><label for="f-color">Accent Color</label><input type="color" id="f-color" value="${p.color||"#00C6FF"}"/></div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-primary" onclick="savePackage()">${icon("check",16,"#0A0F1E")} Save</button>
+  </div>`;}
+function savePackage(){
+  const editId=gv("f-pkgid");
+  const obj={id:editId||`pkg${Date.now()}`,name:gv("f-pkgname"),speed:gv("f-speed"),price:Number(gv("f-price")),validity:Number(gv("f-validity")),dataLimit:gv("f-datalimit"),color:gv("f-color"),autoRenewal:false,active:true};
+  if(!obj.name||!obj.price){alert("Name and price required");return;}
+  if(editId) packages=packages.map(p=>p.id===editId?{...p,...obj}:p);
+  else packages.push(obj);
+  closeModal();goTo("packages");
+}
+function deletePackage(id){if(confirm("Delete this package?"))packages=packages.filter(p=>p.id!==id);goTo("packages");}
+
+// ── BILLING ───────────────────────────────────────────────────────────────────
+let billingFilter="All";
+function renderBilling(){
+  const shown=billingFilter==="All"?transactions:transactions.filter(t=>t.status===billingFilter);
+  const sum=s=>transactions.filter(t=>t.status===s).reduce((a,b)=>a+b.amount,0);
+  return `
+  <h1 class="page-title">Billing & Payments</h1>
+  <div class="grid3">
+    ${statCard("Collected","Rs."+sum("Paid").toLocaleString(),"","#10B981")}
+    ${statCard("Pending","Rs."+sum("Pending").toLocaleString(),"","#F59E0B")}
+    ${statCard("Overdue","Rs."+sum("Overdue").toLocaleString(),"","#EF4444")}
+  </div>
+  <div class="filter-tabs">
+    ${["All","Paid","Pending","Overdue"].map(s=>`<button class="filter-tab ${billingFilter===s?"active":""}" onclick="setBillingFilter('${s}')">${s}</button>`).join("")}
+  </div>
+  <div class="table-wrap"><div class="ovx"><table>
+    <thead><tr><th>Invoice</th><th>Customer</th><th>Amount</th><th>Method</th><th>Date</th><th>Status</th></tr></thead>
+    <tbody>${shown.map((t,i)=>`
+      <tr>
+        <td style="color:#00C6FF;font-weight:600;">${t.id}</td>
+        <td style="color:#E2E8F0;">${esc(t.customerName)}</td>
+        <td style="color:#E2E8F0;font-weight:600;">Rs.${t.amount.toLocaleString()}</td>
+        <td><span style="background:#1E2A3B;color:#94A3B8;padding:3px 10px;border-radius:6px;font-size:12px;">${esc(t.method)}</span></td>
+        <td style="color:#94A3B8;">${t.date}</td>
+        <td>${badge(t.status)}</td>
+      </tr>`).join("")}</tbody>
+  </table></div></div>`;
+}
+function setBillingFilter(f){billingFilter=f;goTo("billing");}
+
+// ── TICKETS ───────────────────────────────────────────────────────────────────
+function renderTickets(){
+  return `
+  <div class="toolbar">
+    <div>
+      <h1 class="page-title">Support Tickets</h1>
+      <p class="page-sub">${tickets.filter(t=>t.status==="Open").length} open · ${tickets.filter(t=>t.status==="Pending").length} pending</p>
+    </div>
+    <button class="btn btn-primary" onclick="openAddTicket()">${icon("plus",16,"#0A0F1E")} New Ticket</button>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:10px;">
+    ${tickets.map(t=>`
+      <div class="ticket-card">
+        <div class="ticket-body">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+            <span class="ticket-id">${t.id}</span>${badge(t.priority)}
+          </div>
+          <div class="ticket-issue">${esc(t.issue)}</div>
+          <div class="ticket-desc">${esc(t.desc)}</div>
+          <div class="ticket-meta">${esc(t.customerName)} · ${t.created}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          ${badge(t.status)}
+          ${t.status!=="Resolved"?`
+            ${t.status==="Open"?`<button class="btn btn-ghost btn-sm" onclick="updateTicket('${t.id}','Pending')">Mark Pending</button>`:""}
+            <button class="btn btn-success btn-sm" onclick="updateTicket('${t.id}','Resolved')">Resolve</button>
+          `:""}
+        </div>
+      </div>
+    `).join("")}
+  </div>`;
+}
+function openAddTicket(){
+  openModal("New Ticket",`
+    <div class="grid-form">
+      ${field("Customer ID","f-cid")}
+      ${field("Customer Name","f-cname")}
+      ${selectField("Issue","f-issue",[
+        {value:"Internet Slow",label:"Internet Slow"},
+        {value:"No Internet",label:"No Internet"},
+        {value:"Billing Issue",label:"Billing Issue"},
+        {value:"Router Issue",label:"Router Issue"},
+      ])}
+      ${selectField("Priority","f-priority",[{value:"High",label:"High"},{value:"Medium",label:"Medium"},{value:"Low",label:"Low"}],"Medium")}
+    </div>
+    <div class="field span2"><label>Description</label>
+      <textarea id="f-desc" rows="3" style="resize:vertical;"></textarea>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveTicket()">Submit Ticket</button>
+    </div>`);
+}
+function saveTicket(){
+  const obj={id:`T00${tickets.length+1}`,customerId:gv("f-cid"),customerName:gv("f-cname"),issue:gv("f-issue"),desc:gv("f-desc"),priority:gv("f-priority"),status:"Open",created:new Date().toISOString().split("T")[0]};
+  if(!obj.customerName){alert("Customer name required");return;}
+  tickets.push(obj);closeModal();goTo("tickets");
+}
+function updateTicket(id,status){tickets=tickets.map(t=>t.id===id?{...t,status}:t);goTo("tickets");}
+
+// ── RESELLERS ─────────────────────────────────────────────────────────────────
+function renderResellers(){
+  return `
+  <div class="toolbar">
+    <h1 class="page-title">Reseller Panel</h1>
+    <button class="btn btn-primary">${icon("plus",16,"#0A0F1E")} Add Reseller</button>
+  </div>
+  <div class="grid3">
+    ${statCard("Total Resellers",resellers.length,"","#00C6FF")}
+    ${statCard("Their Customers",resellers.reduce((a,b)=>a+b.customers,0),"","#10B981")}
+    ${statCard("Total Commission","Rs."+resellers.reduce((a,b)=>a+b.commission,0).toLocaleString(),"","#F59E0B")}
+  </div>
+  <div class="table-wrap"><div class="ovx"><table>
+    <thead><tr><th>ID</th><th>Name</th><th>City</th><th>Mobile</th><th>Wallet</th><th>Customers</th><th>Commission</th><th>Status</th></tr></thead>
+    <tbody>${resellers.map((r,i)=>`
+      <tr>
+        <td style="color:#00C6FF;font-weight:600;">${r.id}</td>
+        <td style="color:#E2E8F0;font-weight:500;">${esc(r.name)}</td>
+        <td style="color:#94A3B8;">${esc(r.city)}</td>
+        <td style="color:#94A3B8;">${esc(r.mobile)}</td>
+        <td style="color:#10B981;font-weight:600;">Rs.${r.balance.toLocaleString()}</td>
+        <td style="color:#E2E8F0;">${r.customers}</td>
+        <td style="color:#F59E0B;font-weight:600;">Rs.${r.commission.toLocaleString()}</td>
+        <td>${badge(r.status)}</td>
+      </tr>`).join("")}
+    </tbody>
+  </table></div></div>`;
+}
+
+// ── MIKROTIK ──────────────────────────────────────────────────────────────────
+let mikroConnected=false;
+function renderMikroTik(){
+  const active=customers.filter(c=>c.status==="Active");
+  return `
+  <h1 class="page-title">MikroTik Integration</h1>
+  <div style="display:grid;grid-template-columns:280px 1fr;gap:16px;">
+    <div class="reseller-conn">
+      <div style="color:#E2E8F0;font-size:14px;font-weight:600;">Router Connection</div>
+      ${field("Router IP","m-host","text","192.168.88.1")}
+      ${field("API Port","m-port","text","8728")}
+      ${field("Username","m-user","text","admin")}
+      ${field("Password","m-pass","password")}
+      <button class="btn btn-primary" onclick="mikroConnect()">${icon("check",16,"#0A0F1E")} ${mikroConnected?"Reconnect":"Connect"}</button>
+      <div id="mikro-status" style="background:${mikroConnected?"#064E3B":"#1E2A3B"};color:${mikroConnected?"#10B981":"#94A3B8"};padding:8px 12px;border-radius:8px;font-size:12px;display:${mikroConnected?"block":"none"};">
+        Connected via RouterOS API
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="mikro-grid">
+        ${[
+          {label:"Auto User Creation",desc:"Create PPPoE/Hotspot on activation",color:"#10B981"},
+          {label:"Auto Expiry",desc:"Disable users on expiry",color:"#F59E0B"},
+          {label:"Bandwidth Control",desc:"Apply speed limits per package",color:"#00C6FF"},
+          {label:"Session Monitor",desc:"Track active sessions live",color:"#818CF8"},
+        ].map((f,i)=>`
+          <div class="mikro-feature">
+            <div style="color:${f.color};font-size:13px;font-weight:600;margin-bottom:4px;">${f.label}</div>
+            <div style="color:#94A3B8;font-size:12px;margin-bottom:10px;">${f.desc}</div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:36px;height:18px;border-radius:9px;background:${mikroConnected?f.color:"#1E2A3B"};position:relative;">
+                <div style="position:absolute;width:14px;height:14px;border-radius:50%;background:#fff;top:2px;left:${mikroConnected?20:2}px;transition:left .2s;"></div>
+              </div>
+              <span style="color:#94A3B8;font-size:12px;">${mikroConnected?"Active":"Off"}</span>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+      <div class="table-wrap">
+        <div class="section-head">PPPoE User Sync — ${active.length} accounts</div>
+        <div class="ovx"><table>
+          <thead><tr><th>Username</th><th>MAC</th><th>Package</th><th>Speed</th><th>Sync</th></tr></thead>
+          <tbody>${active.slice(0,6).map(cu=>{const pk=getPkg(cu.packageId);return`
+            <tr>
+              <td style="color:#E2E8F0;">${esc(cu.username)}</td>
+              <td style="color:#94A3B8;font-family:monospace;font-size:12px;">${esc(cu.mac)}</td>
+              <td style="color:#94A3B8;">${esc(pk.name||"-")}</td>
+              <td style="color:#94A3B8;">${esc(pk.speed||"-")}</td>
+              <td>${badge(mikroConnected?"Active":"Pending")}</td>
+            </tr>`;}).join("")}
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+  </div>`;
+}
+function mikroConnect(){
+  mikroConnected=true;
+  goTo("mikrotik");
+}
+
+// ── FINANCE ───────────────────────────────────────────────────────────────────
+function renderFinance(){
+  const income=transactions.filter(t=>t.status==="Paid").reduce((a,b)=>a+b.amount,0);
+  const expenses=[{label:"Staff Salary",amount:45000},{label:"Server / VPS",amount:8000},{label:"Office Rent",amount:15000},{label:"Miscellaneous",amount:5000}];
+  const totalExp=expenses.reduce((a,b)=>a+b.amount,0);
+  const profit=income-totalExp;
+  return `
+  <h1 class="page-title">Finance</h1>
+  <div class="grid3">
+    ${statCard("Total Income","Rs."+income.toLocaleString(),"","#10B981")}
+    ${statCard("Total Expenses","Rs."+totalExp.toLocaleString(),"","#EF4444")}
+    ${statCard("Net Profit","Rs."+profit.toLocaleString(),"",profit>=0?"#10B981":"#EF4444")}
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div style="color:#E2E8F0;font-size:14px;font-weight:600;margin-bottom:16px;">Expense Breakdown</div>
+      ${expenses.map(e=>`
+        <div class="finance-row">
+          <span style="color:#94A3B8;font-size:13px;">${e.label}</span>
+          <span style="color:#EF4444;font-size:13px;font-weight:600;">Rs.${e.amount.toLocaleString()}</span>
+        </div>`).join("")}
+      <div style="display:flex;justify-content:space-between;padding-top:12px;margin-top:4px;">
+        <span style="color:#E2E8F0;font-size:14px;font-weight:700;">Total</span>
+        <span style="color:#EF4444;font-size:14px;font-weight:700;">Rs.${totalExp.toLocaleString()}</span>
+      </div>
+    </div>
+    <div class="card">
+      <div style="color:#E2E8F0;font-size:14px;font-weight:600;margin-bottom:16px;">Profit Summary</div>
+      ${[["Total Income",income,"#10B981"],["Total Expenses",totalExp,"#EF4444"],["Net Profit",profit,profit>=0?"#10B981":"#EF4444"]].map(([l,v,c])=>`
+        <div class="finance-row">
+          <span style="color:#94A3B8;font-size:13px;">${l}</span>
+          <span style="color:${c};font-size:14px;font-weight:700;">Rs.${v.toLocaleString()}</span>
+        </div>`).join("")}
+      <div style="margin-top:24px;text-align:center;">
+        <button class="btn btn-primary">${icon("download",16,"#0A0F1E")} Export Report</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── AI ASSISTANT ──────────────────────────────────────────────────────────────
+let aiMessages=[{role:"assistant",text:"I'm your WiFi Management System AI assistant. Ask me anything about your customers, revenue, packages, or support tickets."}];
+let aiLoading=false;
+
+function renderAI(){
+  return `
+  <div style="display:flex;flex-direction:column;gap:16px;height:calc(100vh - 140px);">
+    <div>
+      <h1 class="page-title" style="display:flex;align-items:center;gap:10px;">
+        <svg width="22" height="22" fill="none" stroke="#00C6FF" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/>
+          <line x1="10" y1="22" x2="14" y2="22"/>
+        </svg>
+        AI Assistant
+      </h1>
+      <p class="page-sub">Powered by Claude — knows your live data</p>
+    </div>
+    <div class="chat-area" id="chat-area">${renderMessages()}</div>
+    <div class="chat-input-row">
+      <input class="chat-input" id="ai-input" type="text" placeholder="Ask about revenue, customers, expiring accounts..." onkeydown="if(event.key==='Enter')sendAI()"/>
+      <button class="btn btn-primary" id="ai-send-btn" onclick="sendAI()">${icon("send",16,"#0A0F1E")}</button>
+    </div>
+    <div class="suggestions">
+      ${["Which customers are expiring soon?","How much revenue this month?","List unpaid customers","Which package sells most?"].map(q=>`
+        <button class="sugg-btn" onclick="document.getElementById('ai-input').value='${q}'">${q}</button>`).join("")}
+    </div>
+  </div>`;
+}
+
+function renderMessages(){
+  return aiMessages.map(m=>`
+    <div class="chat-msg ${m.role==="user"?"user":""}">
+      <div class="bubble ${m.role==="user"?"bubble-user":"bubble-ai"}">${esc(m.text)}</div>
+    </div>`).join("")+(aiLoading?`
+    <div class="chat-msg"><div class="dots">
+      <div class="dot" style="background:#00C6FF;animation-delay:0s;"></div>
+      <div class="dot" style="background:#00C6FF;animation-delay:.2s;"></div>
+      <div class="dot" style="background:#00C6FF;animation-delay:.4s;"></div>
+    </div></div>`:"");
+}
+
+function initAI(){}
+
+async function sendAI(){
+  const input=document.getElementById("ai-input");
+  if(!input||!input.value.trim()||aiLoading)return;
+  const q=input.value.trim();
+  input.value="";
+  aiMessages.push({role:"user",text:q});
+  aiLoading=true;
+  updateChat();
+
+  const income=transactions.filter(t=>t.status==="Paid").reduce((a,b)=>a+b.amount,0);
+  const sys=`You are the AI assistant for WiFi Management System, built by Suhail Ahmed — a Pakistani ISP management tool.
+Live data:
+CUSTOMERS(${customers.length}): Active=${customers.filter(c=>c.status==="Active").length}, Expired=${customers.filter(c=>c.status==="Expired").length}, Unpaid=${customers.filter(c=>!c.paid).length}
+${customers.map(c=>`${c.id}:${c.name},${c.mobile},pkg=${getPkg(c.packageId).name},${c.status},paid=${c.paid},expiry=${c.expiry}`).join("\n")}
+PACKAGES: ${packages.map(p=>`${p.name}(Rs.${p.price}/${p.validity}d,${p.speed})`).join(", ")}
+REVENUE: Collected=Rs.${income.toLocaleString()}, Pending=Rs.${transactions.filter(t=>t.status==="Pending").reduce((a,b)=>a+b.amount,0).toLocaleString()}, Overdue=Rs.${transactions.filter(t=>t.status==="Overdue").reduce((a,b)=>a+b.amount,0).toLocaleString()}
+TICKETS: Open=${tickets.filter(t=>t.status==="Open").length}, Pending=${tickets.filter(t=>t.status==="Pending").length}, Resolved=${tickets.filter(t=>t.status==="Resolved").length}
+Be concise and helpful. Give actionable ISP management advice.`;
+
+  try{
+    const history=aiMessages.slice(-8).map(m=>({role:m.role,content:m.text}));
+    const res=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,system:sys,messages:history})
+    });
+    const data=await res.json();
+    const txt=data.content?.[0]?.text||"Could not get a response.";
+    aiMessages.push({role:"assistant",text:txt});
+  }catch(e){
+    aiMessages.push({role:"assistant",text:"Connection error. Please check your internet connection."});
+  }
+  aiLoading=false;
+  updateChat();
+}
+
+function updateChat(){
+  const area=document.getElementById("chat-area");
+  if(area){area.innerHTML=renderMessages();area.scrollTop=area.scrollHeight;}
+}
+
+// ── CLOCK ─────────────────────────────────────────────────────────────────────
+function updateClock(){
+  const el=document.getElementById("clock");
+  if(el) el.textContent=new Date().toLocaleTimeString("en-PK");
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+buildNav();
+renderPage("dashboard");
+updateClock();
+setInterval(updateClock,1000);
+</script>
+</body>
+</html>
